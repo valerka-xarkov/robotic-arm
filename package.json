@@ -1,0 +1,61 @@
+{
+  "name": "robotic-hand",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "run": "tsc --baseUrl ./src/ts --outDir ./dist",
+    "watch": "webpack --watch",
+    "start": "webpack-dev-server --open --watch",
+    "start:dist": "http-server ./dist",
+    "build": "webpack",
+    "build:prod": "webpack --config webpack.prod.config.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/core": "^7.9.6",
+    "@babel/preset-env": "^7.9.6",
+    "@babel/preset-typescript": "^7.9.0",
+    "babel-loader": "^8.1.0",
+    "base64-inline-loader": "^1.1.1",
+    "browserify": "^16.5.0",
+    "clean-webpack-plugin": "^3.0.0",
+    "copy-webpack-plugin": "^5.0.4",
+    "css-loader": "^3.5.3",
+    "eslint": "^6.4.0",
+    "extract-text-webpack-plugin": "^3.0.2",
+    "file-loader": "^5.1.0",
+    "html-minifier-terser": "^5.0.5",
+    "html-webpack-inline-source-plugin": "0.0.10",
+    "html-webpack-inline-style-plugin": "^0.2.0",
+    "html-webpack-plugin": "^3.2.0",
+    "http-server": "^0.12.1",
+    "inline-script-loader": "^1.0.7",
+    "mini-css-extract-plugin": "^0.9.0",
+    "optimize-css-assets-webpack-plugin": "^5.0.3",
+    "prettier": "^1.19.1",
+    "prettier-tslint": "^0.4.2",
+    "script-ext-html-webpack-plugin": "^2.1.4",
+    "script-loader": "^0.7.2",
+    "style-loader": "^1.2.0",
+    "terser-webpack-plugin": "^2.3.6",
+    "ts-loader": "^6.2.2",
+    "tslint": "^5.20.0",
+    "typescript": "^3.8.3",
+    "url-loader": "^3.0.0",
+    "webpack": "^4.43.0",
+    "webpack-cli": "^3.3.11",
+    "webpack-dev-server": "^3.10.3"
+  },
+  "dependencies": {
+    "simple-steering-wheel": "^0.4.5"
+  },
+  "prettier": {
+    "tabWidth": 2,
+    "semi": true,
+    "singleQuote": true,
+    "printWidth": 120
+  }
+}
