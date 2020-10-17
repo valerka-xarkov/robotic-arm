@@ -6,8 +6,7 @@
 #include "ESPAsyncWebServer.h"
 #include "./page.c"
 
-#define LED_BUILTIN 2   // Set the GPIO pin where you connected your test LED or comment this line out if your dev board has a built-in LED
-const int ledPin = 2;
+#define LED_BUILTIN 22   // Set the GPIO pin where you connected your test LED or comment this line out if your dev board has a built-in LED
 const int freq = 5000;
 
 const int servosCount = 3;
@@ -23,9 +22,11 @@ const char *ssid = "my-robotic-hand";
 const char *password = "my-robotic-hand";
 
 AsyncWebServer server(80);
+AsyncWebSocket ws("/ws");
 
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH);
   int i;
   for (i = 0; i < servosCount; i++) {
     ledcSetup(servoChannels[i], servoFreq, servoResolution);
@@ -46,9 +47,10 @@ void setup() {
   server.on("/wheels", HTTP_GET, handleWheels);
   server.onNotFound(handleNotFound);
   server.begin();
+  ws.onEvent(onEvent);
 
   Serial.println("Server started");
-  digitalWrite(LED_BUILTIN, HIGH);
+  digitalWrite(LED_BUILTIN, LOW);
 }
 void handleRoot(AsyncWebServerRequest *request) {
   AsyncResponseStream *response = request->beginResponseStream("text/html");
@@ -115,6 +117,74 @@ void handleWheels(AsyncWebServerRequest *request) {
 
 void handleNotFound(AsyncWebServerRequest *request) {
   request->send(404, "text/plain", "Not found");
+}
+
+
+void onEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len){
+  if(type == WS_EVT_CONNECT){
+    //client connected
+    os_printf("ws[%s][%u] connect\n", server->url(), client->id());
+    client->printf("Hello Client %u :)", client->id());
+    client->ping();
+  } else if(type == WS_EVT_DISCONNECT){
+    //client disconnected
+    Serial.print("ws[%s][%u] disconnect: %u\n", server->url(), client->id());
+  } else if(type == WS_EVT_ERROR){
+    //error was received from the other end
+    Serial.print("ws[%s][%u] error(%u): %s\n", server->url(), client->id(), *((uint16_t*)arg), (char*)data);
+  } else if(type == WS_EVT_PONG){
+    //pong message was received (in response to a ping request maybe)
+    Serial.print("ws[%s][%u] pong[%u]: %s\n", server->url(), client->id(), len, (len)?(char*)data:"");
+  } else if(type == WS_EVT_DATA){
+    //data packet
+    AwsFrameInfo * info = (AwsFrameInfo*)arg;
+    if(info->final && info->index == 0 && info->len == len){
+      //the whole message is in a single frame and we got all of it's data
+      Serial.print("ws[%s][%u] %s-message[%llu]: ", server->url(), client->id(), (info->opcode == WS_TEXT)?"text":"binary", info->len);
+      if(info->opcode == WS_TEXT){
+        data[len] = 0;
+        Serial.print("%s\n", (char*)data);
+      } else {
+        for(size_t i=0; i < info->len; i++){
+          Serial.print("%02x ", data[i]);
+        }
+        Serial.print("\n");
+      }
+      if(info->opcode == WS_TEXT)
+        client->text("I got your text message");
+      else
+        client->binary("I got your binary message");
+    } else {
+      //message is comprised of multiple frames or the frame is split into multiple packets
+      if(info->index == 0){
+        if(info->num == 0)
+          Serial.print("ws[%s][%u] %s-message start\n", server->url(), client->id(), (info->message_opcode == WS_TEXT)?"text":"binary");
+        Serial.print("ws[%s][%u] frame[%u] start[%llu]\n", server->url(), client->id(), info->num, info->len);
+      }
+
+      Serial.print("ws[%s][%u] frame[%u] %s[%llu - %llu]: ", server->url(), client->id(), info->num, (info->message_opcode == WS_TEXT)?"text":"binary", info->index, info->index + len);
+      if(info->message_opcode == WS_TEXT){
+        data[len] = 0;
+        Serial.print("%s\n", (char*)data);
+      } else {
+        for(size_t i=0; i < len; i++){
+          Serial.print("%02x ", data[i]);
+        }
+        Serial.print("\n");
+      }
+
+      if((info->index + len) == info->len){
+        Serial.print("ws[%s][%u] frame[%u] end[%llu]\n", server->url(), client->id(), info->num, info->len);
+        if(info->final){
+          Serial.print("ws[%s][%u] %s-message end\n", server->url(), client->id(), (info->message_opcode == WS_TEXT)?"text":"binary");
+          if(info->message_opcode == WS_TEXT)
+            client->text("I got your text message");
+          else
+            client->binary("I got your binary message");
+        }
+      }
+    }
+  }
 }
 
 void loop(void) {
